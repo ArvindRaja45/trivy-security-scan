@@ -5,23 +5,29 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  scan:
+  trivy-scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Trivy
+      - name: Install Trivy v0.18.3
         run: |
           sudo apt update
-          sudo apt install -y wget
-          wget $(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | grep browser_download_url | grep linux_amd64.tar.gz | cut -d '"' -f 4)
-          tar -xvzf trivy_*_linux_amd64.tar.gz
-          sudo mv trivy /usr/local/bin/
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.deb
+          sudo dpkg -i trivy_0.18.3_Linux-64bit.deb
 
-      - name: Run Trivy Scan
+      - name: Run Trivy Image Scan
         run: |
-          chmod +x scan-k8s.sh
-          ./scan-k8s.sh
+          trivy image alpine:latest > trivy-report.txt
+          cat trivy-report.txt
+
+      - name: Upload Scan Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: trivy-report.txt
